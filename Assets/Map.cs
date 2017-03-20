@@ -126,9 +126,7 @@ public class Map : MonoBehaviour {
 		grid [17, 24] = 2;
 		grid [17, 11] = 2;
 		grid [12, 2] = 2;
-
-		printGrid ();
-
+	
 	}
 
 	public int[,] getGrid() {

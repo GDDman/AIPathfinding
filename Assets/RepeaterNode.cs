@@ -12,7 +12,6 @@ public class RepeaterNode: BNode {
 			if (child.status == Status.SUCESS || child.status == Status.FAILED) {
 				status = Status.DORMANT;
 				refresh ();
-				System.Console.WriteLine("REPEAT");
 			}
 		}
 	}
