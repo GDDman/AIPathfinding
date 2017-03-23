@@ -17,7 +17,14 @@ public class Astar : MonoBehaviour {
 	float plaqueidlemax = 0.7f;
 	float profidlemax = 0.8f;
 	float randidlemax;
-	Material mat;
+
+	int bestheur = int.MaxValue;
+	float frusttime = 0f;
+	float accumtime = 0f;
+	MeshRenderer render;
+	Material purple;
+	Material yellow;
+	Material red;
 
 	Vector2 randpath = new Vector2 ();
 	int pathindex;
@@ -88,7 +95,11 @@ public class Astar : MonoBehaviour {
 		changepath = true;
 
 		randidlemax = Random.Range (0.5f, 1.5f);
-			
+		render = (MeshRenderer)transform.GetComponent<MeshRenderer> ();
+		purple = Resources.Load("Materials/Purple", typeof(Material)) as Material;
+		yellow = Resources.Load("Materials/Yellow", typeof(Material)) as Material;
+		red = Resources.Load("Materials/Red", typeof(Material)) as Material;
+		render.material = purple;
 	}
 
 	public bool getIdling() {
@@ -120,8 +131,8 @@ public class Astar : MonoBehaviour {
 		return new Vector2(x, y);
 	}
 
-	public bool updateStudent () {
-
+	public bool updateStudent (float time) {
+		
 		bool tolast = false;
 		finishedpath = false;
 
@@ -149,7 +160,9 @@ public class Astar : MonoBehaviour {
 		case Actiontype.PATHPLAQUE:
 			
 			if (idling) {
-				game.grids[0].add(currentx, currenty, label);
+				for (int i = 0; i < 3; i++) {
+					game.grids [i].add (currentx, currenty, label);
+				}
 				idling = false;
 				idlingcounter = 0;
 				plan.current.status = BNode.Status.SUCESS;
@@ -179,7 +192,7 @@ public class Astar : MonoBehaviour {
 							if (path.Count > 1) {
 								int counter = 0;
 								for (int i = path.Count - 1; i < game.timeslices; i++) {
-									if (counter > 6) {
+									if (counter > 3) {
 										break;
 									}
 									counter++;
@@ -249,7 +262,9 @@ public class Astar : MonoBehaviour {
 		case Actiontype.PATHPROF:
 			
 			if (idling) {
-				game.grids[0].add(currentx, currenty, label);
+				for (int i = 0; i < 3; i++) {
+					game.grids [i].add (currentx, currenty, label);
+				}
 				idling = false;
 				idlingcounter = 0;
 				plan.current.status = BNode.Status.SUCESS;
@@ -269,7 +284,7 @@ public class Astar : MonoBehaviour {
 							if (path.Count > 1) {
 								int counter = 0;
 								for (int i = path.Count - 1; i < game.timeslices; i++) {
-									if (counter > 6) {
+									if (counter > 3) {
 										break;
 									}
 									counter++;
@@ -331,7 +346,7 @@ public class Astar : MonoBehaviour {
 				int ticks = (int)((randidlemax)*60);
 
 				if (idlingcounter == 0) {
-					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick) + 1;
+					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick) + 2;
 					if (blocks > game.timeslices) {
 						blocks = game.timeslices;
 					}
@@ -436,6 +451,36 @@ public class Astar : MonoBehaviour {
 
 		default:
 			break;
+		}
+
+		if (pathing)
+			accumtime += time;
+		else {
+			accumtime = 0;
+			bestheur = int.MaxValue;
+			frusttime = 0;
+		}
+
+		if (pathing && game.tick == 1) {
+			frusttime += accumtime;
+			accumtime = 0f;
+			int newheur = manhattenDist (new Vector2 (currentx, currenty), new Vector2 (destx, desty));
+			if (newheur <= bestheur) {
+				bestheur = newheur;
+				frusttime = 0f;
+				render.material = purple;
+			}
+			if (frusttime > 0.1f && frusttime <= 3f) {
+				render.material = yellow;
+			} else if (frusttime > 3f) {
+				render.material = red;
+			}
+		}
+		if (idling) {
+			bestheur = int.MaxValue;
+			frusttime = 0;
+			accumtime = 0;
+			render.material = purple;
 		}
 
 		return tolast;

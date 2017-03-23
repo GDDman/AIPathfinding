@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Game : MonoBehaviour {
 
-	public int timeslices = 20;
+	public int timeslices = 30;
 	public int tick = 1;
 	public int maxtick = 6;
 	public Grid[] grids;
@@ -47,7 +47,7 @@ public class Game : MonoBehaviour {
 	}
 
 	void printBlocked() {
-		System.Console.WriteLine ("");
+		System.Console.WriteLine ("START");
 		for (int i = 0; i < 20; i++) {
 			string s = "";
 			for (int j = 0; j < 32; j++) {
@@ -69,6 +69,7 @@ public class Game : MonoBehaviour {
 	}
 
 	public void printgrids() {
+		System.Console.WriteLine ("START");
 		for (int i = 0; i < timeslices; i++) {
 			System.Console.WriteLine (i);
 			printgrid(grids [i]);
@@ -110,7 +111,7 @@ public class Game : MonoBehaviour {
 
 		foreach (Astar student in studentlist) {
 			try {
-				if (student.updateStudent ()) {
+				if (student.updateStudent (Time.deltaTime)) {
 					toend.Add(student);
 				}
 			}
