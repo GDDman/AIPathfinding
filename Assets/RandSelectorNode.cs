@@ -19,8 +19,16 @@ public class RandSelectorNode: BNode {
 
 		if (child.status == Status.SUCESS) {
 			status = Status.SUCESS;
+			if (children.Count > 0) {
+				int rand = Random.Range (0, children.Count);
+				child = (BNode) children [rand];
+			} 
 		} else if (child.status == Status.FAILED) {
 			status = Status.FAILED;
+			if (children.Count > 0) {
+				int rand = Random.Range (0, children.Count);
+				child = (BNode) children [rand];
+			}
 		}
 
 	}

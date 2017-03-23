@@ -10,17 +10,19 @@ public class Node : IHeapItem<Node> {
 	public Vector2 index;
 	public Node parent;
 	int heapIndex;
+	public int time;
 
-	public Node (int c, int i, int j, int h) {
+	public Node (int c, int i, int j, int h, int t) {
 		cost = c;
 		tcost = c + h;
 		index = new Vector2(i, j);
+		time = t;
 		// outside of bounds for null value
 		parent = null;
 	}
 
 	public static bool Equals(Node n1, Node n2) {
-		if (n1.index == n2.index)
+		if (n1.index == n2.index && n1.time == n2.time)
 			return true;
 		else
 			return false;
