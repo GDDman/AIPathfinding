@@ -95,8 +95,6 @@ public class Game : MonoBehaviour {
 		tick++;
 		if (tick > maxtick) {
 			tick = 1;
-			System.Console.WriteLine ("---------------");
-			printgrids ();
 			updateGrid ();
 			for (int i = 0; i < 20; i++) {
 				for (int j = 0; j < 32; j++) {

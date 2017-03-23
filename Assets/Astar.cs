@@ -30,6 +30,7 @@ public class Astar : MonoBehaviour {
 
 	int timecounter = 0;
 	int idlingcounter = 0;
+	bool ticksleft = false;
 
 	public enum Actiontype {
 		NULL,
@@ -86,7 +87,7 @@ public class Astar : MonoBehaviour {
 		finishedpath = false;
 		changepath = true;
 
-		randidlemax = Random.Range (0.5f, 2f);
+		randidlemax = Random.Range (0.5f, 1.5f);
 			
 	}
 
@@ -148,22 +149,11 @@ public class Astar : MonoBehaviour {
 		case Actiontype.PATHPLAQUE:
 			
 			if (idling) {
-
-				int ticks = (int) ((plaqueidlemax)*60);
-
-				if (idlingcounter == 0) {
-					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick);
-					int remainder = blocks - (game.timeslices - path.Count);
-					if (remainder > 0) game.blocked [currentx, currenty] = remainder;
-				}
-				idlingcounter++;
-
-				if (idlingcounter >= ticks) {
-					idling = false;
-					idlingcounter = 0;
-					plan.current.status = BNode.Status.SUCESS;
-					changepath = true;
-				}
+				game.grids[0].add(currentx, currenty, label);
+				idling = false;
+				idlingcounter = 0;
+				plan.current.status = BNode.Status.SUCESS;
+				changepath = true;
 				break;
 			}
 
@@ -186,8 +176,15 @@ public class Astar : MonoBehaviour {
 							changepath = false;
 						}
 						else {
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								game.grids[i].add(destx, desty, label);
+							if (path.Count > 1) {
+								int counter = 0;
+								for (int i = path.Count - 1; i < game.timeslices; i++) {
+									if (counter > 6) {
+										break;
+									}
+									counter++;
+									game.grids[i].add(destx, desty, label);
+								}
 							}
 						}
 					} catch (System.Exception e) {
@@ -252,22 +249,11 @@ public class Astar : MonoBehaviour {
 		case Actiontype.PATHPROF:
 			
 			if (idling) {
-
-				int ticks = (int)((profidlemax)*60);
-
-				if (idlingcounter == 0) {
-					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick);
-					int remainder = blocks - (game.timeslices - path.Count);
-					if (remainder > 0) game.blocked [currentx, currenty] = remainder;
-				}
-
-				idlingcounter++;
-				if (idlingcounter >= ticks) {
-					idling = false;
-					idlingcounter = 0;
-					plan.current.status = BNode.Status.SUCESS;
-					changepath = true;
-				}
+				game.grids[0].add(currentx, currenty, label);
+				idling = false;
+				idlingcounter = 0;
+				plan.current.status = BNode.Status.SUCESS;
+				changepath = true;
 				break;
 			}
 
@@ -280,8 +266,15 @@ public class Astar : MonoBehaviour {
 						tolast = true;
 						finishedpath = decidePath (true);
 						if (finishedpath) {
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								game.grids[i].add(destx, desty, label);
+							if (path.Count > 1) {
+								int counter = 0;
+								for (int i = path.Count - 1; i < game.timeslices; i++) {
+									if (counter > 6) {
+										break;
+									}
+									counter++;
+									game.grids[i].add(destx, desty, label);
+								}
 							}
 						}
 					}
@@ -332,14 +325,19 @@ public class Astar : MonoBehaviour {
 			break;
 
 		case Actiontype.PATHRAND:
+
 			if (idling) {
 
 				int ticks = (int)((randidlemax)*60);
 
 				if (idlingcounter == 0) {
-					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick);
-					int remainder = blocks - (game.timeslices - path.Count);
-					if (remainder > 0) game.blocked [currentx, currenty] = remainder;
+					int blocks = (int)Mathf.Ceil ((float)ticks / (float)game.maxtick) + 1;
+					if (blocks > game.timeslices) {
+						blocks = game.timeslices;
+					}
+					for (int i = 0; i < blocks; i++) {
+						game.grids [i].add (currentx, currenty, label);
+					}
 				}
 
 				idlingcounter++;
@@ -347,7 +345,7 @@ public class Astar : MonoBehaviour {
 					idling = false;
 					idlingcounter = 0;
 					plan.current.status = BNode.Status.SUCESS;
-					randidlemax = Random.Range (0.5f, 2f);
+					randidlemax = Random.Range (0.5f, 1.5f);
 					changepath = true;
 				}
 				break;
@@ -372,8 +370,10 @@ public class Astar : MonoBehaviour {
 							changepath = false;
 						}
 						else {
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								game.grids[i].add(destx, desty, label);
+							if (path.Count > 1) {
+								for (int i = path.Count - 1; i < game.timeslices; i++) {
+									game.grids[i].add(destx, desty, label);
+								}
 							}
 						}
 					}
@@ -474,7 +474,7 @@ public class Astar : MonoBehaviour {
 					} else {
 						g = og;
 					}
-					if (g.getgrid((x + i), (y + j)) == 0 && g.getgrid(x, (y + j)) == 0 && g.getgrid((x + i), y) == 0) {
+					if ((g.getgrid((x + i), (y + j)) == 0 || g.getgrid((x + i), (y + j)) == label) && g.getgrid(x, (y + j)) == 0 && g.getgrid((x + i), y) == 0) {
 						int hdist = manhattenDist (new Vector2 (x + i, y + j), goal);
 						Node n = new Node (node.cost + 1, x + i, y + j, hdist, timecounter + 1);
 						if (closed.Contains(n.index)) 
@@ -492,9 +492,13 @@ public class Astar : MonoBehaviour {
 					} else {
 						g = og;
 					}
-					if (g.getgrid(x + i, y + j) == 0 || g.getgrid(x + i, y + j) == 2) {
+					if (g.getgrid(x + i, y + j) == 0 || g.getgrid(x + i, y + j) == label || g.getgrid(x + i, y + j) == 2) {
 						if (!prof) {
-							if (g.getgrid(x + i, y + j) == 2) {
+							if (g.getgrid (x + i, y + j) == 2) {
+								continue;
+							}
+						} else {
+							if ((g.getgrid (x + i, y + j) == 2) && ((destx != x + i) || (desty != y + j))) {
 								continue;
 							}
 						}
@@ -604,8 +608,8 @@ public class Astar : MonoBehaviour {
 		int y = (int) Mathf.Abs (dist.y);
 		return (x > y) ? x : y;
 	}
-
-	public string ToString() {
+		
+	public override string ToString() {
 		string s = "prof: " + randprof + "   dest: " + destx + " " + desty + "   pos: " + currentx + " " + currenty + "\n";
 		return s;
 	}
