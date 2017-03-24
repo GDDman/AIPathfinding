@@ -2,21 +2,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Describes the AI behavious, and pathfinding of a student 
 public class Astar : MonoBehaviour {
 
-	static int searchdepth = 320;
+	// How many nodes to seach 
+	static int searchnodes = 200;
+
+	// current position of the student
 	int currentx;
 	int currenty;
+
+	// the number label of the student
 	int label;
+
+	// flags for pathfinding
 	bool pathing;
 	bool finishedpath;
-
 	bool changepath;
-
 	bool idling;
-	float plaqueidlemax = 0.7f;
-	float profidlemax = 0.8f;
 
+	// variables for changing student color based on frustration
 	float lastheur = 1000f;
 	float frusttime = 0f;
 	float accumtime = 0f;
@@ -27,16 +32,21 @@ public class Astar : MonoBehaviour {
 
 	Vector2 randpath = new Vector2 ();
 	int pathindex;
+
+	// The tree that defines the student's behaviours
 	BehaviourTree plan;
+
+	// the current plaque or prof to path to chosen at random
 	int randprof;
 	int randplaque;
+
+	// set coordinates of professors and plaques are known by the student
 	Vector2[] profcoords = new Vector2[6];
 	Vector2[] plaquecoords = new Vector2[6];
 	LinkedList<int> memory = new LinkedList<int>();
 
 	int timecounter = 0;
 	int idlingcounter = 0;
-	bool ticksleft = false;
 
 	public enum Actiontype {
 		NULL,
@@ -49,20 +59,25 @@ public class Astar : MonoBehaviour {
 		FINISH
 	}
 
+	// settable in the inspector
 	public int initialx = 0;
 	public int initialy = 0;
 
+	// the destination coordinates that the student wants to go to
 	int destx = 0;
 	int desty = 0;
 
-	Heap<Node> nodelist = new Heap<Node>(searchdepth);
+	// list of nodes being searched
+	Heap<Node> nodelist = new Heap<Node>(searchnodes);
+	// list of nodes already searched
 	HashSet<Vector2> closed = new HashSet<Vector2>();
+	// the current path the student is travelling
 	List<Vector2> path = new List<Vector2>();
+	// reference to the main game class
 	Game game;
 
-	int idletime = 0;
+	// random time for the student to idle by 
 	int randidleticks = 0;
-	int randticksleft = 0;
 
 	// Use this for initialization
 	void Start () {
@@ -79,6 +94,7 @@ public class Astar : MonoBehaviour {
 		randprof = Random.Range (0, 6);
 		randplaque = 0;
 
+		// Hard setting coordinates baed on the map coordinates (not world)
 		profcoords[0] = new Vector2 (2, 7);
 		profcoords[1] = new Vector2(2, 20);
 		profcoords[2] = new Vector2(7, 29);
@@ -93,17 +109,20 @@ public class Astar : MonoBehaviour {
 		plaquecoords[4] = new Vector2(15, 9);
 		plaquecoords[5] = new Vector2(10, 4);
 
+		// this function translate the map coordinates to world coordinates and positions the student 
 		updatePosition ();
 		finishedpath = false;
 		changepath = true;
 
+		// color materials 
 		render = (MeshRenderer)transform.GetComponent<MeshRenderer> ();
 		purple = Resources.Load("Materials/Purple", typeof(Material)) as Material;
 		yellow = Resources.Load("Materials/Yellow", typeof(Material)) as Material;
 		red = Resources.Load("Materials/Red", typeof(Material)) as Material;
 		render.material = purple;
 	}
-
+		
+	//Various getters and setters
 	public bool getIdling() {
 		return idling;
 	}
@@ -135,17 +154,20 @@ public class Astar : MonoBehaviour {
 		this.transform.position = new Vector3(x, 0.65f, y);
 	}
 
+	// translate a map coordinate to world coordinate
 	Vector2 getPoint(Vector2 positions) {
 		float x = (((float)positions.y)/2 - 8) + (float)0.25;  
 		float y = (-((float)positions.x)/2 + 5) - (float)0.25;
 		return new Vector2(x, y);
 	}
 
+	// get euclidian distance between two coordinates
 	public float getDist(Vector2 from, Vector2 to) {
 		Vector3 vec = to - from;
 		return vec.magnitude;
 	}
 
+	// get euclidian distance between the student and the goal
 	public float dist() {
 		Vector2 from = new Vector2 (currentx, currenty);
 		Vector2 to = new Vector2 (destx, desty);
@@ -153,11 +175,15 @@ public class Astar : MonoBehaviour {
 		return vec.magnitude;
 	}
 
+	// Main function of student that loops at 60fps
 	public int updateStudent (float time) {
 
 		accumtime += time;
 		frusttime += time;
 
+		// Calculating frustration and setting color
+
+		// student has reached goal so reset 
 		if (finishedpath) {
 			lastheur = 1000f;
 			frusttime = 0f;
@@ -166,6 +192,8 @@ public class Astar : MonoBehaviour {
 		else if (accumtime > 0.2f) {
 			accumtime = 0f;
 			float currentheur = dist ();
+			// lastheur is the lst heuristic (euclidian distance) closest to the goal found.
+			// If the student is currently on a better space, the frustration is reset
 			if (currentheur <= lastheur) {
 				frusttime = 0f;
 				lastheur = currentheur;
@@ -179,19 +207,28 @@ public class Astar : MonoBehaviour {
 			}
 		}
 			
+		// This boolean is returned at the end of the function. It is a flag for the Game class.
+		// If -1, the student is sent to the front of the priority queue. If 1, the student is sent to the end of the queue. 
+		// 0 they maintain their position. 
 		int tolast = 0;
 
+		// This is the behaviour tree for the student
+
+		// The update loops until the tree is traversed to a leaf node (action)
+		// The root of the tree is a repeater, so the behaviours repeat indefinitely
 		plan.update ();
 		if (plan.current.actiontype == Actiontype.NULL)
 			return 0;
 
 		switch (plan.current.actiontype) 
 		{
+		// action always sucessful
 		case Actiontype.FINISH:
 
 			plan.current.status = BNode.Status.SUCESS;
 			break;
-		
+
+		// student checks their memory to see if they know the prof location of the random prof 
 		case Actiontype.CHECKDATA:
 			
 			if (memory.Contains (randprof)) {
@@ -200,41 +237,55 @@ public class Astar : MonoBehaviour {
 				plan.current.status = BNode.Status.FAILED;
 			}
 			tolast = 1;
+			// skips an iteration
 			plan.update ();
 			if (plan.current.actiontype == Actiontype.PATHPLAQUE) {
 				goto case Actiontype.PATHPLAQUE;
 			}
 			break;
 		
+		// pathfind to random unknown plaque if unknown
 		case Actiontype.PATHPLAQUE:
-			
+
+			// at the end of the path, end the action with a sucess.
 			if (idling) {
 				idling = false;
 				idlingcounter = 0;
-				idletime = 0;
 				plan.current.status = BNode.Status.SUCESS;
 				changepath = true;
 				break;
 			}
-
+	
+			// Plan the path to travel
 			if (!pathing) {
+
+				// path actions happen in set intervals
 				if (game.tick == 1) {
+
+					// if a new target plaque
 					if (changepath) {
 						randplaque = Random.Range (0, 6);
 						while (memory.Contains (randplaque)) {
 							randplaque = Random.Range (0, 6);
 						}
 					}
+
+					// set the destination
 					Vector2 goal = plaquecoords [randplaque];
 					destx = (int) goal.x;
 					desty = (int) goal.y;
 					tolast = 1;
+
+					// this function sets the path in the global path variable, returns true if it is a full path to the goal
+					// and false if it is only a partial path. If complete it returns two goal nodes in the path
 					try {
 						finishedpath = decidePath (false);
 					}
 					catch (System.Exception e) {
 						finishedpath = false;
 					}
+
+					// Edge case
 					if (path.Count <= 1) {
 						idling = true;
 						pathindex = 0;
@@ -242,9 +293,12 @@ public class Astar : MonoBehaviour {
 						tolast = 1;
 						break;
 					}
+					// If the path is not done, complete the path and then find a new partial path
 					if (!finishedpath) {
+						// the target plaque is the same
 						changepath = false;
 					} else {
+						// Set 1 square on each side around the goal where other student can't enter while this student is thinking
 						for (int i = -1; i <= 1; i++) {
 							for (int j = -1; j <= 1; j++) {
 								if (i == 0 || j == 0) {
@@ -256,9 +310,11 @@ public class Astar : MonoBehaviour {
 							}
 						}
 					}
+					// pathindex is the current position in the path
 					pathing = true;
 					pathindex = 0;
 				}
+				// continue right away to the pathing
 			}
 			if (pathing) {
 
@@ -269,6 +325,7 @@ public class Astar : MonoBehaviour {
 					break;
 				}
 					
+				// linear interpolation of the position between grid tiles on non-primary game ticks
 				if (game.tick != game.maxtick) {
 
 					Vector2 pos = path [pathindex];
@@ -281,11 +338,15 @@ public class Astar : MonoBehaviour {
 
 				} else {
 
+					// get next position in the path and take its coordinates
 					Vector2 newpos = path [++pathindex];
 					currentx = (int) newpos.x;
 					currenty = (int) newpos.y;
 
+					// update to middle of grid square
 					updatePosition ();
+
+					// path is finished, the second last and last nodes will be the goal, set the status of the student to idling
 					if (pathindex == path.Count - 2 && finishedpath) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
@@ -310,6 +371,7 @@ public class Astar : MonoBehaviour {
 			}
 			break;
 
+		// Checks a plaque to see if it is the right one
 		case Actiontype.CHECKPLAQUE:
 			
 			if (randplaque == randprof) {
@@ -319,26 +381,29 @@ public class Astar : MonoBehaviour {
 				plan.current.status = BNode.Status.FAILED;
 			}
 
+			// student memory has 4 slots and is a priority queue
 			updateMemory (randplaque);
 			tolast = 1;
 			plan.update ();
+			// skip iteration
 			if (plan.current.actiontype == Actiontype.PATHPROF) {
 				goto case Actiontype.PATHPROF;
 			}
 			break;
 
+		// calcualte and take a path to a known professor location
 		case Actiontype.PATHPROF:
-			
+
+			// return a sucess
 			if (idling) {
 				idling = false;
 				idlingcounter = 0;
-				idletime = 0;
 				plan.current.status = BNode.Status.SUCESS;
 				changepath = true;
 				tolast = 1;
 				break;
 			}
-
+			// calulate the path
 			if (!pathing) {
 				
 				if (game.tick == 1) {
@@ -346,6 +411,7 @@ public class Astar : MonoBehaviour {
 					destx = (int)goal2.x;
 					desty = (int)goal2.y;
 					tolast = 1;
+					// Store path in global path variable
 					try {
 						finishedpath = decidePath (true);
 					} catch (System.Exception e) {
@@ -359,6 +425,7 @@ public class Astar : MonoBehaviour {
 						break;
 					}
 					if (finishedpath) {
+						// Set unwalkable area near goal
 						for (int i = -1; i <= 1; i++) {
 							for (int j = -1; j <= 1; j++) {
 								if (i != 0 && j != 0) {
@@ -383,6 +450,7 @@ public class Astar : MonoBehaviour {
 					break;
 				}
 
+				// linear interpolation
 				if (game.tick != game.maxtick) {
 
 					Vector2 pos = path [pathindex];
@@ -394,11 +462,12 @@ public class Astar : MonoBehaviour {
 					transform.position = transform.position + v3;
 
 				} else {
-
+					
 					Vector2 newpos = path [++pathindex];
 					currentx = (int)newpos.x;
 					currenty = (int)newpos.y;
 					updatePosition ();
+					// goal is reached, pass to idle state
 					if (pathindex == path.Count - 2 && finishedpath) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
@@ -419,17 +488,16 @@ public class Astar : MonoBehaviour {
 						}
 					}
 				}
-
 			}
 			break;
 
+		// Path to a random location
 		case Actiontype.PATHRAND:
 
 			if (idling) {
 
-				randidleticks = Random.Range(3, 10);
+				// idle for a random amount of time before returning a sucess
 				int ticks = game.maxtick*(randidleticks);
-
 				idlingcounter++;
 				if (idlingcounter >= ticks) {
 					idling = false;
@@ -439,13 +507,14 @@ public class Astar : MonoBehaviour {
 					tolast = 1;
 					break;
 				}
-
 				break;
 			}
 
+			// Calculate the path
 			if (!pathing) {
 				if (game.tick == 1) {
 					if (changepath) {
+						// Keep trying until an empty space is found on the map
 						randpath.x = Random.Range (0, 20);
 						randpath.y = Random.Range (0, 32);
 						while (game.originalgrid [(int)randpath.x, (int)randpath.y] != 0) {
@@ -455,6 +524,7 @@ public class Astar : MonoBehaviour {
 					}
 					destx = (int)randpath.x;
 					desty = (int)randpath.y;
+					// Get path and response
 					try {
 						finishedpath = decidePath (false);
 					}
@@ -471,6 +541,7 @@ public class Astar : MonoBehaviour {
 					if(!finishedpath) {
 						changepath = false;
 					} else {
+						// unwalable area includes corners
 						for (int i = -1; i <= 1; i++) {
 							for (int j = -1; j <= 1; j++) {
 								if (i != 0 && j != 0) {
@@ -494,7 +565,7 @@ public class Astar : MonoBehaviour {
 					idling = true;
 					break;
 				}
-
+				// linear interpolation
 				if (game.tick != game.maxtick) {
 
 					Vector2 pos = path [pathindex];
@@ -511,6 +582,7 @@ public class Astar : MonoBehaviour {
 					currentx = (int) newpos.x;
 					currenty = (int) newpos.y;
 					updatePosition ();
+					// goal is found, close off coordinate for the amount of turns the student is idling
 					if (pathindex == path.Count - 2 && finishedpath) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
@@ -518,6 +590,9 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
+						randidleticks = Random.Range(5, 15);
+						// closes the space for a set amount of turns (bigger than the timing window)
+						game.blocked [currentx, currenty] = randidleticks + 6;
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -528,13 +603,15 @@ public class Astar : MonoBehaviour {
 						pathindex = 0;
 						if (finishedpath) {
 							idling = true;
+							randidleticks = Random.Range(5, 15);
+							game.blocked [currentx, currenty] = randidleticks + 6;
 						}
 					}
 				}
 
 			}
 			break;
-		
+		// pick a random prof to try to find
 		case Actiontype.PICKPROF:
 
 			int newprof = Random.Range (0, 6);
@@ -543,16 +620,17 @@ public class Astar : MonoBehaviour {
 			}
 			randprof = newprof;
 			plan.current.status = BNode.Status.SUCESS;
-
 			break;
 
 		default:
 			break;
 		}
 
+		// the flag indicating the student priority
 		return tolast;
 	}
 
+	// updates known professors. Priority queue of size 4.
 	void updateMemory(int r) {
 		memory.Remove (r);
 		memory.AddFirst (r);
@@ -560,6 +638,7 @@ public class Astar : MonoBehaviour {
 			memory.RemoveLast ();
 	}
 
+	// Used to get posible children of a node in the path
 	ArrayList getChildren(Node node, bool prof) {
 
 		Vector2 goal = new Vector2 (destx, desty);
@@ -571,6 +650,7 @@ public class Astar : MonoBehaviour {
 		int x = (int) node.index.x;
 		int y = (int) node.index.y;
 
+		// checks all the spaces around
 		for (int i = -1; i <= 1; i++) {
 			for (int j = -1; j <= 1; j++) {
 				if (i == 0 && j == 0) continue;
@@ -581,18 +661,23 @@ public class Astar : MonoBehaviour {
 				if (i != 0 && j != 0) {
 					// corner 
 					Grid g = null;
+					// Use the grids in the timing window if possible
 					if (timecounter + 1 < game.timeslices) {
 						g = grids [timecounter + 1];
 					} else {
 						g = og;
 					}
+					// corner neighbours
 					if ((g.getgrid((x + i), (y + j)) == 0 || g.getgrid((x + i), (y + j)) == label) && g.getgrid(x, (y + j)) == 0 && g.getgrid((x + i), y) == 0) {
+						// use 8 way manhatten distance heuristic
 						int hdist = manhattenDist (new Vector2 (x + i, y + j), goal);
+						// Cost to neighbour is always 1. Nodes store the time in the path
 						Node n = new Node (node.cost + 1, x + i, y + j, hdist, timecounter + 1);
 						if (closed.Contains(n.index)) 
 							continue;
 						n.parent = node;
 						if (!nodelist.Contains (n)) {
+							//add neighbour to children list
 							children.Add (n);
 						}
 					}
@@ -605,6 +690,7 @@ public class Astar : MonoBehaviour {
 						g = og;
 					}
 					if (g.getgrid(x + i, y + j) == 0 || g.getgrid(x + i, y + j) == label || g.getgrid(x + i, y + j) == 2) {
+						// paths to professors can have the prof position in the path as the goal (it is taken out later)
 						if (!prof) {
 							if (g.getgrid (x + i, y + j) == 2) {
 								continue;
@@ -629,21 +715,26 @@ public class Astar : MonoBehaviour {
 		return children;
 	}
 
+	// returns true if the path ends at the goal, flase if a partial path. Stores the path in the global path variable
 	public bool decidePath(bool prof) {
 
-
+		// Reset the nodelists
 		Vector2 goal = new Vector2 (destx, desty);
 		pathing = true;
-		nodelist = new Heap<Node>(searchdepth);
+		nodelist = new Heap<Node>(searchnodes);
 		closed = new HashSet<Vector2> ();
+
+		// add the current position at time and cost 0 to openlist
 		nodelist.Add (new Node (0, currentx, currenty, 0, 0));
 
 		Node end = null;
 		while (nodelist.Count > 0) {
 
+			// Gets the node with the best cost from the heap
 			Node n = nodelist.RemoveFirst ();
 			timecounter = n.time;
 
+			// ignores this node if it is swapping positions with another one (the turn before they were in each other's positions)
 			if (timecounter >= 1) {
 				if (timecounter < game.timeslices) {
 					if (game.grids [timecounter - 1].getgrid ((int)n.index.x, (int)n.index.y) >= 3) {
@@ -656,15 +747,24 @@ public class Astar : MonoBehaviour {
 				}
 			} 
 
+			// If a student is idling the node space, ignore this node
+			if (game.blocked [(int)n.index.x, (int)n.index.y] >= timecounter + 1) {
+				continue;
+			}
+
+			// nodes is travelled 
 			closed.Add (n.index);
 
+			// get valid children for this node
 			ArrayList children = getChildren (n, prof);
 			foreach (Node child in children) {
 				try { 
 					nodelist.Add (child);
 				}
 				catch (System.Exception e) {
+					// This occurs when the algorithm has searched through too many nodes (probably means no path to goal exists)
 					foreach (Node tempnode in nodelist.items) {
+						// checks for best end node
 						if (tempnode.time == n.time && getDist (tempnode.index, new Vector2 (destx, desty)) <= getDist (n.index, new Vector2 (destx, desty))) {
 							n = tempnode;
 						}
@@ -673,14 +773,16 @@ public class Astar : MonoBehaviour {
 					break;
 				}
 			}
-
+			// get the goal node if found
 			if (checkGoal (n, goal)) {
 				end = n;
 				break;
 			}
+			// get the next best node if not
 			end = n;
 		}
 
+		// follow the tree from goal leaf to root and set the path
 		path = new List<Vector2>();
 		path.Insert (path.Count, end.index);
 		Node curr = end;
@@ -688,26 +790,23 @@ public class Astar : MonoBehaviour {
 			path.Insert (0, curr.index);
 		}
 
+		// add a second goal node
 		path.Add (path [path.Count - 1]);
 
+		// if bigger than the timing window, cut the path off to be the size of the timing window
 		if (path.Count >= game.timeslices) {
 			path = path.GetRange (0, game.timeslices);
 		}
-
+			
+		// If second goal was not cut off
 		if (path [path.Count - 1] == goal && path[path.Count - 2] == goal) {
+			// change goal for professor to spot in front of them
 			if (prof) {
-				foreach (Vector2 v in path) {
-					print (v);
-				}
-				print ("");
 				path.RemoveAt (path.Count - 1);
 				path.RemoveAt (path.Count - 1);
 				path.Add (path[path.Count - 1]);
-				foreach (Vector2 v in path) {
-					print (v);
-				}
-				print ("");
 			}
+			// for each timing window on the map, set the reservation for the path
 			for (int i = 0; i < path.Count; i++) {
 				game.grids [i].add ((int)path[i].x, (int)path[i].y, label);
 			}
@@ -715,6 +814,7 @@ public class Astar : MonoBehaviour {
 			return true;
 		} 
 
+		// for each timing window on the map, set the reservation for the path
 		for (int i = 0; i < path.Count; i++) {
 			game.grids [i].add ((int)path[i].x, (int)path[i].y, label);
 		}
@@ -722,6 +822,7 @@ public class Astar : MonoBehaviour {
 
 	}
 
+	// Checks to see if this node is the goal node
 	bool checkGoal(Node n, Vector2 goal) {
 		Vector2 i = n.index;
 		if (new Vector2 () == (i - goal))

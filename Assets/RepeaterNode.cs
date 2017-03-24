@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Node that repeats if returned a result from any child. Refreshes all nodes in the tree below it.
 public class RepeaterNode: BNode {
 
 	public RepeaterNode(BNode p) : base(p) {

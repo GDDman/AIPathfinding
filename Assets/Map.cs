@@ -4,12 +4,13 @@ using UnityEngine;
 
 public class Map : MonoBehaviour {
 
-	// these are tiles of size 0.5x0.5 (0,0) is top left corner, 0 = empty, 1 = obstruction, 2 = prof;
+	// these are tiles of size 0.5x0.5 (0,0) is top left corner, 0 = empty, 1 = obstruction, 2 = prof, 3 and above = student;
 	int[,] grid;
 
 	// Use this for initialization
 	void Start () {
 
+		// Hard coding the map coordinates (map included in submission)
 		grid = new int[20, 32];
 
 		for (int i = 0; i < 20; i++) {

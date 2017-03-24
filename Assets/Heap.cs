@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 
+// Standard Heap class for open nodelist
 public class Heap<T> where T : IHeapItem<T> {
 
 	public T[] items;

@@ -6,7 +6,9 @@ public class Grid {
 
 	public int[,] grid;
 
+	// represents the base grid of the map
 	public Grid() {
+		
 		GameObject map = GameObject.Find ("Map");
 		Map m = (Map) map.GetComponent ("Map");
 		grid = new int[20, 32];
@@ -18,12 +20,14 @@ public class Grid {
 		}
 	}
 
+	// set a coordinate on the grid to a value
 	public void add(int i, int j, int num) {
 		if (grid [i, j] == 0) {
 			grid [i, j] = num;
 		}
 	}
 
+	// the the value of the graid at a coordinate
 	public int getgrid(int i, int j) {
 		return grid [i, j];
 	}

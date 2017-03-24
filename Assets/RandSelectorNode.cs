@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// randomly selects a child to execute
 public class RandSelectorNode: BNode {
 
 	BNode child;
@@ -17,6 +18,7 @@ public class RandSelectorNode: BNode {
 			return;
 		}
 
+		// return result of child and pick a new one
 		if (child.status == Status.SUCESS) {
 			status = Status.SUCESS;
 			if (children.Count > 0) {
@@ -35,6 +37,7 @@ public class RandSelectorNode: BNode {
 
 	public override BNode getNext() {
 
+		// select child when called
 		if (child == null) {
 			if (children.Count > 0) {
 				int rand = Random.Range (0, children.Count);

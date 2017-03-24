@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Node that returns a sucess if all of its children are sucessful in a certain order
 public class SequenceNode: BNode {
 
 	public SequenceNode(BNode p) : base(p) {

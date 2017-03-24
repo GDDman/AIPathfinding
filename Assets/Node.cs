@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+// Node in path 
 public class Node : IHeapItem<Node> {
 
 	public int cost;
@@ -12,6 +13,7 @@ public class Node : IHeapItem<Node> {
 	int heapIndex;
 	public int time;
 
+	// c is cost so far, i is row, j column, h is heuristic value, t is the time in the path
 	public Node (int c, int i, int j, int h, int t) {
 		cost = c;
 		tcost = c + h;
@@ -27,13 +29,14 @@ public class Node : IHeapItem<Node> {
 		else
 			return false;
 	}
-
+		
 	public int CompareTo(Node n) {
 		if (n == null)
 			return 0;
 		return n.tcost.CompareTo (this.tcost);
 	}
 
+	// Stored to keep track of position in heap
 	public int HeapIndex {
 		get {
 			return heapIndex;

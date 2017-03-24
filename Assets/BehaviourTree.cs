@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Tree consisting of Bnodes
 public class BehaviourTree {
 
 	public BNode current;
@@ -10,6 +11,11 @@ public class BehaviourTree {
 	public BehaviourTree() {
 
 		finished = false;
+
+		// Hard coding of the specific behaviour tree for a student
+		// outlined in more detail in the provide diagram
+
+		// intermediate nodes take a parent, action leaf nodes take in the type of action they are
 
 		BNode root = new RepeaterNode (null);
 
@@ -30,6 +36,7 @@ public class BehaviourTree {
 		BNode finish = new ActionNode (randbranch, Astar.Actiontype.FINISH);
 		BNode pathrand = new ActionNode(randbranch, Astar.Actiontype.PATHRAND);
 
+		// current is the node being looked at in the tree at any time
 		current = root;
 
 	}
@@ -38,6 +45,7 @@ public class BehaviourTree {
 
 		if (finished) return;
 
+		// recursively find the first leaf and set it to current
 		if (current.status == BNode.Status.DORMANT) {
 			current.status = BNode.Status.RUNNING;
 			if (current.getNext () != null) {
@@ -45,6 +53,7 @@ public class BehaviourTree {
 				update ();
 			}
 		} else if (current.status == BNode.Status.SUCESS || current.status == BNode.Status.FAILED) {
+			// if the current node returns a result, pass to the parent
 			if (current.parent != null) {
 				current = current.parent;
 				update ();

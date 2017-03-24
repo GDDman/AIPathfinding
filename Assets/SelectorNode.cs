@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Node that returns sucess if any of its children return a sucess (has a specific order)
 public class SelectorNode: BNode {
 
 	public SelectorNode(BNode p) : base(p) {
