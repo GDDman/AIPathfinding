@@ -4,30 +4,23 @@ using UnityEngine;
 
 public class Game : MonoBehaviour {
 
-	public int timeslices = 30;
+	public int timeslices = 25;
 	public int tick = 1;
 	public int maxtick = 6;
 	public Grid[] grids;
 	public int[,] originalgrid;
-	public int[,] blocked;
 
-	ArrayList studentlist = new ArrayList();
+	LinkedList<Astar> studentlist = new LinkedList<Astar>();
 
 	void Start () {
+
+		Application.targetFrameRate = 60;
 
 		grids = new Grid[timeslices];
 
 		GameObject map = GameObject.Find ("Map");
 		Map m = (Map) map.GetComponent ("Map");
 		originalgrid = m.getGrid ();
-
-		blocked = new int[20, 32];
-
-		for (int i = 0; i < 20; i++) {
-			for (int j = 0; j < 32; j++) {
-				blocked [i, j] = 0;
-			}
-		}
 
 		GameObject students = GameObject.Find ("Students");
 		int temp = 3;
@@ -36,7 +29,7 @@ public class Game : MonoBehaviour {
 			a.setGame (this);
 			a.setlabel(temp);
 			temp++;
-			studentlist.Add (a);
+			studentlist.AddLast (a);
 		}
 		tick = 1;
 
@@ -44,21 +37,6 @@ public class Game : MonoBehaviour {
 			grids [i] = new Grid ();
 		}
 
-	}
-
-	void printBlocked() {
-		System.Console.WriteLine ("START");
-		for (int i = 0; i < 20; i++) {
-			string s = "";
-			for (int j = 0; j < 32; j++) {
-				if (blocked [i, j] < 0) {
-					s += ("0 ");
-				} else {
-					s += ((blocked[i, j] + 1) + " ");
-				}
-			}
-			System.Console.WriteLine (s);
-		}
 	}
 
 	void updateGrid() {
@@ -97,32 +75,29 @@ public class Game : MonoBehaviour {
 		if (tick > maxtick) {
 			tick = 1;
 			updateGrid ();
-			for (int i = 0; i < 20; i++) {
-				for (int j = 0; j < 32; j++) {
-					if (blocked [i, j] != 0) {
-						grids [grids.Length - 1].add (i, j, 3);
-						blocked [i, j] = blocked [i, j] - 1;
-					}
-				}
-			}
 		}
 
 		List<Astar> toend = new List<Astar> ();
+		List<Astar> tostart = new List<Astar> ();
 
 		foreach (Astar student in studentlist) {
-			try {
-				if (student.updateStudent (Time.deltaTime)) {
-					toend.Add(student);
-				}
+			int flag = student.updateStudent (Time.deltaTime);
+			if (flag == 1) {
+				toend.Add(student);
 			}
-			catch (System.Exception e) {
-				//print (student.ToString ());
+			else if (flag == -1) {
+				tostart.Add(student);
 			}
 		}
 
-		foreach (Astar a in toend) {
-			studentlist.Remove (a);
-			studentlist.Add (a);
+		foreach (Astar s in tostart) {
+			studentlist.Remove (s);
+			studentlist.AddFirst (s);
+		}
+
+		foreach (Astar e in tostart) {
+			studentlist.Remove (e);
+			studentlist.AddLast (e);
 		}
 
 	}
