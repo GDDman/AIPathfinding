@@ -36,7 +36,7 @@ public class Game : MonoBehaviour {
 		for (int i = 0; i < timeslices; i++) {
 			grids [i] = new Grid ();
 		}
-
+			
 	}
 
 	void updateGrid() {
@@ -44,6 +44,11 @@ public class Game : MonoBehaviour {
 			grids [i] = grids [i + 1];
 		}
 		grids [timeslices - 1] = new Grid ();
+		foreach (Astar s in studentlist) {
+			if (s.getIdling ()) {
+				grids [timeslices - 1].add (s.getcurrentx(), s.getcurrenty(), s.getlabel ());
+			}
+		}
 	}
 
 	public void printgrids() {

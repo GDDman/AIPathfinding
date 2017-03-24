@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Astar : MonoBehaviour {
 
-	static int searchdepth = 640;
+	static int searchdepth = 320;
 	int currentx;
 	int currenty;
 	int label;
@@ -120,6 +120,14 @@ public class Astar : MonoBehaviour {
 		label = i;
 	}
 
+	public int getcurrentx() {
+		return currentx;
+	}
+
+	public int getcurrenty() {
+		return currenty;
+	}
+
 	void updatePosition() {
 
 		float x = (((float)currenty)/2 - 8) + (float)0.25;  
@@ -172,7 +180,6 @@ public class Astar : MonoBehaviour {
 		}
 			
 		int tolast = 0;
-		finishedpath = false;
 
 		plan.update ();
 		if (plan.current.actiontype == Actiontype.NULL)
@@ -192,23 +199,21 @@ public class Astar : MonoBehaviour {
 			} else {
 				plan.current.status = BNode.Status.FAILED;
 			}
-
+			tolast = 1;
+			plan.update ();
+			if (plan.current.actiontype == Actiontype.PATHPLAQUE) {
+				goto case Actiontype.PATHPLAQUE;
+			}
 			break;
 		
 		case Actiontype.PATHPLAQUE:
 			
 			if (idling) {
-				
-				int ticks = game.maxtick * 2;
-				idlingcounter++;
-				if (idlingcounter >= ticks) {
-					idling = false;
-					idlingcounter = 0;
-					idletime = 0;
-					plan.current.status = BNode.Status.SUCESS;
-					changepath = true;
-					break;
-				}
+				idling = false;
+				idlingcounter = 0;
+				idletime = 0;
+				plan.current.status = BNode.Status.SUCESS;
+				changepath = true;
 				break;
 			}
 
@@ -237,27 +242,23 @@ public class Astar : MonoBehaviour {
 						tolast = 1;
 						break;
 					}
-					if(!finishedpath) {
+					if (!finishedpath) {
 						changepath = false;
-					}
-					else {
-						if (path.Count > 1) {
-							int counter = 0;
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								if (counter > 5) {
-									break;
+					} else {
+						for (int i = -1; i <= 1; i++) {
+							for (int j = -1; j <= 1; j++) {
+								if (i == 0 || j == 0) {
+									Vector2 last = path [path.Count - 1];
+									if (((int)last.x + i) >= 0 && ((int)last.x + i) < 20 && ((int)last.y + j) >= 0 && ((int)last.y + j) < 32) {
+										game.grids [path.Count - 1].add ((int)last.x + i, (int)last.y + j, label);
+									}
 								}
-								counter++;
-								game.grids[i].add(destx, desty, label);
 							}
-							idletime = 5 - counter;
-							tolast = -1;
 						}
 					}
 					pathing = true;
 					pathindex = 0;
 				}
-				break;
 			}
 			if (pathing) {
 
@@ -280,25 +281,24 @@ public class Astar : MonoBehaviour {
 
 				} else {
 
-					if (finishedpath && idletime > 0) {
-						game.grids [game.grids.Length - 1].add (destx, desty, label);
-						idletime--;
-					}
 					Vector2 newpos = path [++pathindex];
 					currentx = (int) newpos.x;
 					currenty = (int) newpos.y;
-					for (int i = 0; i < plaquecoords.Length; i++) {
-						if (plaquecoords [i] == new Vector2 (currentx, currenty)) {
-							updateMemory (i);
-						}
-					}
+
 					updatePosition ();
+					if (pathindex == path.Count - 2 && finishedpath) {
+						pathing = false;
+						currentx = (int) path [pathindex].x;
+						currenty = (int) path [pathindex].y;
+						updatePosition ();
+						pathindex = 0;
+						idling = true;
+						break;
+					}
 					if (pathindex == path.Count - 1) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
 						currenty = (int) path [pathindex].y;
-						game.grids [0].add (currentx, currenty, label);
-						game.grids [1].add (currentx, currenty, label);
 						updatePosition ();
 						pathindex = 0;
 						if (finishedpath) {
@@ -320,36 +320,35 @@ public class Astar : MonoBehaviour {
 			}
 
 			updateMemory (randplaque);
-
+			tolast = 1;
+			plan.update ();
+			if (plan.current.actiontype == Actiontype.PATHPROF) {
+				goto case Actiontype.PATHPROF;
+			}
 			break;
 
 		case Actiontype.PATHPROF:
 			
 			if (idling) {
-				
-				int ticks = game.maxtick * 2;
-				idlingcounter++;
-				if (idlingcounter >= ticks) {
-					idling = false;
-					idlingcounter = 0;
-					idletime = 0;
-					plan.current.status = BNode.Status.SUCESS;
-					changepath = true;
-					break;
-				}
+				idling = false;
+				idlingcounter = 0;
+				idletime = 0;
+				plan.current.status = BNode.Status.SUCESS;
+				changepath = true;
+				tolast = 1;
 				break;
 			}
 
 			if (!pathing) {
+				
 				if (game.tick == 1) {
 					Vector2 goal2 = profcoords [randprof];
-					destx = (int) goal2.x;
-					desty = (int) goal2.y;
+					destx = (int)goal2.x;
+					desty = (int)goal2.y;
 					tolast = 1;
 					try {
 						finishedpath = decidePath (true);
-					}
-					catch (System.Exception e) {
+					} catch (System.Exception e) {
 						finishedpath = false;
 					}
 					if (path.Count <= 1) {
@@ -360,23 +359,20 @@ public class Astar : MonoBehaviour {
 						break;
 					}
 					if (finishedpath) {
-						if (path.Count > 1) {
-							int counter = 0;
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								if (counter > 4) {
-									break;
+						for (int i = -1; i <= 1; i++) {
+							for (int j = -1; j <= 1; j++) {
+								if (i != 0 && j != 0) {
+									Vector2 last = path [path.Count - 1];
+									if (((int)last.x + i) >= 0 && ((int)last.x + i) < 20 && ((int)last.y + j) >= 0 && ((int)last.y + j) < 32) {
+										game.grids [path.Count - 1].add ((int)last.x + i, (int)last.y + j, label);
+									}
 								}
-								counter++;
-								game.grids[i].add(destx, desty, label);
 							}
-							idletime = 4 - counter;
-							tolast = -1;
 						}
 					}
 					pathing = true;
 					pathindex = 0;
 				}
-				break;
 			}
 			if (pathing) {
 
@@ -391,33 +387,31 @@ public class Astar : MonoBehaviour {
 
 					Vector2 pos = path [pathindex];
 					Vector2 newpos = path [pathindex + 1];
-					Vector2 v = getPoint(newpos) - getPoint(pos);
+					Vector2 v = getPoint (newpos) - getPoint (pos);
 					Vector3 v3 = new Vector3 (v.x, 0, v.y);
-					float f = 1/(float)(game.maxtick);
+					float f = 1 / (float)(game.maxtick);
 					v3 = Vector3.Scale (new Vector3 (f, 0, f), v3);
 					transform.position = transform.position + v3;
 
 				} else {
-						
-					if (finishedpath && idletime > 0) {
-						game.grids [game.grids.Length - 1].add (destx, desty, label);
-						idletime--;
-					}
+
 					Vector2 newpos = path [++pathindex];
-					currentx = (int) newpos.x;
-					currenty = (int) newpos.y;
-					for (int i = 0; i < plaquecoords.Length; i++) {
-						if (plaquecoords [i] == new Vector2 (currentx, currenty)) {
-							updateMemory (i);
-						}
-					}
+					currentx = (int)newpos.x;
+					currenty = (int)newpos.y;
 					updatePosition ();
-					if (pathindex == path.Count - 1) {
+					if (pathindex == path.Count - 2 && finishedpath) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
 						currenty = (int) path [pathindex].y;
-						game.grids [0].add (currentx, currenty, label);
-						game.grids [1].add (currentx, currenty, label);
+						updatePosition ();
+						pathindex = 0;
+						idling = true;
+						break;
+					}
+					if (pathindex == path.Count - 1) {
+						pathing = false;
+						currentx = (int)path [pathindex].x;
+						currenty = (int)path [pathindex].y;
 						updatePosition ();
 						pathindex = 0;
 						if (finishedpath) {
@@ -433,7 +427,8 @@ public class Astar : MonoBehaviour {
 
 			if (idling) {
 
-				int ticks = idletime*(randidleticks - 2);
+				randidleticks = Random.Range(3, 10);
+				int ticks = game.maxtick*(randidleticks);
 
 				idlingcounter++;
 				if (idlingcounter >= ticks) {
@@ -441,8 +436,10 @@ public class Astar : MonoBehaviour {
 					idlingcounter = 0;
 					plan.current.status = BNode.Status.SUCESS;
 					changepath = true;
+					tolast = 1;
 					break;
 				}
+
 				break;
 			}
 
@@ -471,29 +468,23 @@ public class Astar : MonoBehaviour {
 						tolast = 1;
 						break;
 					}
-					tolast = 1;
 					if(!finishedpath) {
 						changepath = false;
-					}
-					else {
-						if (path.Count > 1) {
-							randidleticks = Random.Range(3, 10);
-							randticksleft = randidleticks;
-							for (int i = path.Count - 1; i < game.timeslices; i++) {
-								game.grids[i].add(destx, desty, label);
-								randticksleft--;
-								if (randticksleft == 0) {
-									break;
+					} else {
+						for (int i = -1; i <= 1; i++) {
+							for (int j = -1; j <= 1; j++) {
+								if (i != 0 && j != 0) {
+									Vector2 last = path [path.Count - 1];
+									if (((int)last.x + i) >= 0 && ((int)last.x + i) < 20 && ((int)last.y + j) >= 0 && ((int)last.y + j) < 32) {
+										game.grids [path.Count - 1].add ((int)last.x + i, (int)last.y + j, label);
+									}
 								}
 							}
-							randidleticks++;
-							tolast = -1;
 						}
 					}
 					pathing = true;
 					pathindex = 0;
 				}
-				break;
 			}
 			if (pathing) {
 
@@ -516,25 +507,23 @@ public class Astar : MonoBehaviour {
 
 				} else {
 					
-					if (finishedpath && randticksleft > 0) {
-						game.grids [game.grids.Length - 1].add (destx, desty, label);
-						randticksleft--;
-					}
 					Vector2 newpos = path [++pathindex];
 					currentx = (int) newpos.x;
 					currenty = (int) newpos.y;
-					for (int i = 0; i < plaquecoords.Length; i++) {
-						if (plaquecoords [i] == new Vector2 (currentx, currenty)) {
-							updateMemory (i);
-						}
-					}
 					updatePosition ();
-					if (pathindex == path.Count - 1) {
+					if (pathindex == path.Count - 2 && finishedpath) {
 						pathing = false;
 						currentx = (int) path [pathindex].x;
 						currenty = (int) path [pathindex].y;
-						game.grids [0].add (currentx, currenty, label);
-						game.grids [1].add (currentx, currenty, label);
+						updatePosition ();
+						pathindex = 0;
+						idling = true;
+						break;
+					}
+					if (pathindex == path.Count - 1) {
+						pathing = false;
+						currentx = (int)path [pathindex].x;
+						currenty = (int)path [pathindex].y;
 						updatePosition ();
 						pathindex = 0;
 						if (finishedpath) {
@@ -699,13 +688,25 @@ public class Astar : MonoBehaviour {
 			path.Insert (0, curr.index);
 		}
 
+		path.Add (path [path.Count - 1]);
+
 		if (path.Count >= game.timeslices) {
 			path = path.GetRange (0, game.timeslices);
 		}
 
-		if (path [path.Count - 1] == goal) {
+		if (path [path.Count - 1] == goal && path[path.Count - 2] == goal) {
 			if (prof) {
+				foreach (Vector2 v in path) {
+					print (v);
+				}
+				print ("");
 				path.RemoveAt (path.Count - 1);
+				path.RemoveAt (path.Count - 1);
+				path.Add (path[path.Count - 1]);
+				foreach (Vector2 v in path) {
+					print (v);
+				}
+				print ("");
 			}
 			for (int i = 0; i < path.Count; i++) {
 				game.grids [i].add ((int)path[i].x, (int)path[i].y, label);
