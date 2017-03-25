@@ -127,6 +127,10 @@ public class Astar : MonoBehaviour {
 		return idling;
 	}
 
+	public List<Vector2> getPath() {
+		return path;
+	}
+
 	public void setGame(Game g) {
 		game = g;
 	}
@@ -354,6 +358,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
+						game.alertIdle (new Vector2 (currentx, currenty), 2);
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -364,6 +369,7 @@ public class Astar : MonoBehaviour {
 						pathindex = 0;
 						if (finishedpath) {
 							idling = true;
+							game.alertIdle (new Vector2 (currentx, currenty), 2);
 						}
 					}
 				}
@@ -475,6 +481,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
+						game.alertIdle (new Vector2 (currentx, currenty), 2);
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -484,6 +491,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						if (finishedpath) {
+							game.alertIdle (new Vector2 (currentx, currenty), 2);
 							idling = true;
 						}
 					}
@@ -590,9 +598,10 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
-						randidleticks = Random.Range(5, 15);
+						randidleticks = Random.Range(3, 11);
 						// closes the space for a set amount of turns (bigger than the timing window)
 						game.blocked [currentx, currenty] = randidleticks + 6;
+						game.alertIdle (new Vector2 (currentx, currenty), randidleticks + 6);
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -603,8 +612,9 @@ public class Astar : MonoBehaviour {
 						pathindex = 0;
 						if (finishedpath) {
 							idling = true;
-							randidleticks = Random.Range(5, 15);
+							randidleticks = Random.Range(3, 11);
 							game.blocked [currentx, currenty] = randidleticks + 6;
+							game.alertIdle (new Vector2 (currentx, currenty), randidleticks + 6);
 						}
 					}
 				}
@@ -628,6 +638,20 @@ public class Astar : MonoBehaviour {
 
 		// the flag indicating the student priority
 		return tolast;
+	}
+
+	public int getPathIndex() {
+		return pathindex;
+	}
+
+	public bool isPathing() {
+		return pathing;
+	}
+
+	// if path crosses idle 
+	public void replan() {
+		pathing = false;
+		pathindex = 0;
 	}
 
 	// updates known professors. Priority queue of size 4.

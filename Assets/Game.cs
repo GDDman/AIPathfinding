@@ -11,11 +11,16 @@ public class Game : MonoBehaviour {
 	public int tick = 1;
 	public int maxtick = 6;
 
-	// resevation table
+	// reservation table
 	public Grid[] grids;
-	// single bse map
+	// single base map
 	public int[,] originalgrid;
 	public int[,] blocked;
+
+	// checks if an idle was called on last iteration and replans paths
+	bool replan;
+	Vector2 replancoords;
+	int replantime;
 
 	LinkedList<Astar> studentlist = new LinkedList<Astar>();
 
@@ -50,7 +55,10 @@ public class Game : MonoBehaviour {
 
 		// for checking idle students
 		blocked = new int [20, 32];
-			
+
+		replan = false;
+		replancoords = new Vector2();
+		replantime = 0;
 	}
 
 	// shifts the time of every grid in the reservation table down by 1 and sets a fresh one at the end
@@ -87,6 +95,13 @@ public class Game : MonoBehaviour {
 			}
 			System.Console.WriteLine (s);
 		}
+	}
+
+	// alerts all students that a student is idling and repaths them if a conflict is about to happen
+	public void alertIdle(Vector2 idlecoords, int time) {
+		replan = true;
+		replancoords = idlecoords;
+		replantime = time;
 	}
 	
 	// Update is called once per frame
@@ -128,6 +143,34 @@ public class Game : MonoBehaviour {
 		foreach (Astar e in tostart) {
 			studentlist.Remove (e);
 			studentlist.AddLast (e);
+		}
+
+		if (replan) {
+
+			replan = false;
+
+			List<Astar> studentstoend = new List<Astar> ();
+			foreach (Astar s in studentlist) {
+				List<Vector2> path = s.getPath ();
+				int pathindex = s.getPathIndex ();
+				for (int i = pathindex; i <= pathindex + replantime; i++) {
+					if (i >= path.Count) {
+						break;
+					}
+					// idle is in path
+					if (s.isPathing() && path [i] == replancoords) {
+						s.replan ();
+						toend.Add (s);
+						break;
+					}
+				}
+			}
+			// Add replanned nodes to end of student list
+			foreach (Astar a in studentstoend) {
+				studentlist.Remove (a);
+				studentlist.AddLast (a);
+			}
+
 		}
 
 	}
