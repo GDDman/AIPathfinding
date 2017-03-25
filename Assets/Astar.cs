@@ -358,7 +358,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
-						game.alertIdle (new Vector2 (currentx, currenty), 2);
+						game.alertIdle (new Vector2 (currentx, currenty), 3);
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -369,7 +369,7 @@ public class Astar : MonoBehaviour {
 						pathindex = 0;
 						if (finishedpath) {
 							idling = true;
-							game.alertIdle (new Vector2 (currentx, currenty), 2);
+							game.alertIdle (new Vector2 (currentx, currenty), 3);
 						}
 					}
 				}
@@ -481,7 +481,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						idling = true;
-						game.alertIdle (new Vector2 (currentx, currenty), 2);
+						game.alertIdle (new Vector2 (currentx, currenty), 3);
 						break;
 					}
 					if (pathindex == path.Count - 1) {
@@ -491,7 +491,7 @@ public class Astar : MonoBehaviour {
 						updatePosition ();
 						pathindex = 0;
 						if (finishedpath) {
-							game.alertIdle (new Vector2 (currentx, currenty), 2);
+							game.alertIdle (new Vector2 (currentx, currenty), 3);
 							idling = true;
 						}
 					}
@@ -613,8 +613,8 @@ public class Astar : MonoBehaviour {
 						if (finishedpath) {
 							idling = true;
 							randidleticks = Random.Range(3, 11);
-							game.blocked [currentx, currenty] = randidleticks + 6;
-							game.alertIdle (new Vector2 (currentx, currenty), randidleticks + 6);
+							game.blocked [currentx, currenty] = randidleticks + 8;
+							game.alertIdle (new Vector2 (currentx, currenty), randidleticks + 8);
 						}
 					}
 				}
